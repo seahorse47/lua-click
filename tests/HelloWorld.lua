@@ -1,12 +1,3 @@
-# lua-clt
-
-一个用于快速创建命令行程序的Lua模块。
-
-## Quick start
-
-一个简单的`HelloWorld`程序：
-
-```
 -- HelloWorld.lua
 
 local function main(cmd, options, arguments)
@@ -32,4 +23,3 @@ local mainCommand = clt.FunctionCommand {
 if clt.__name__()=="__main__" then
     clt.main(mainCommand, nil, {...})
 end
-```
