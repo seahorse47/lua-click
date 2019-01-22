@@ -57,12 +57,14 @@ function Object:super()
 end
 --]]
 
+
 --------------------------------------------------------------------------------
 --- options parser
 
 local OPT_ERROR_INVALID_OPTION = "INVALID_OPTION"
 local OPT_ERROR_MISSING_OPTION = "MISSING_OPTION"
 local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
+
 
 --- @class clt.OptionConfig
 --- @field 1 string @ Alias for `opt` field.
@@ -524,6 +526,7 @@ local function isFailed(retCode)
     return retCode~=nil and retCode~=true and retCode~=0
 end
 
+
 --- @class clt.HelpConfig : clt.OptionConfig
 --- @field disabled boolean @ [Optional] Whether disable the help option. Default value is false.
 
@@ -703,9 +706,6 @@ function BaseCommand:getContext(context)
 end
 
 
---- @class clt.CommandGroup
-local CommandGroup = class("CommandGroup", BaseCommand)
-
 --- @class clt.CommandGroupConfig : clt.BaseCommandConfig
 --- @field chain boolean @ [Optional] Whether it is allowed to invoke more than one
 ---             subcommand in one go.
@@ -713,6 +713,9 @@ local CommandGroup = class("CommandGroup", BaseCommand)
 --- @field subcommand_metavar string @ [Optional] Used for changing the meta variable
 ---             in the help page.
 
+
+--- @class clt.CommandGroup
+local CommandGroup = class("CommandGroup", BaseCommand)
 
 --- @desc Constructor of CommandGroup.
 --- @param cfg clt.CommandGroupConfig @ Configuration for the command.
@@ -861,12 +864,12 @@ function FunctionCommand:execute(proc, args)
 end
 
 
---- @class clt.ExecuteFileCommand
-local ExecuteFileCommand = class("ExecuteFileCommand", BaseCommand)
-
 --- @class clt.ExecuteFileCommandConfig : clt.BaseCommandConfig
 --- @field entry_file string @ The path of the target file.
 
+
+--- @class clt.ExecuteFileCommand
+local ExecuteFileCommand = class("ExecuteFileCommand", BaseCommand)
 
 --- @desc Constructor of ExecuteFileCommand.
 --- @param cfg clt.ExecuteFileCommandConfig @ Configuration for the command.
@@ -969,6 +972,7 @@ local function main(command, proc, args)
     end
     return os.exit(retCode)
 end
+
 
 --------------------------------------------------------------------------------
 -- export classes and functions
