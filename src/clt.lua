@@ -879,13 +879,14 @@ function ExecuteFileCommand:initialize(cfg)
 end
 
 function ExecuteFileCommand:loadFileWithEnv(filename, env)
-    if _VERSION == "Lua 5.1" then
+    local luaVersion = _G._VERSION
+    if luaVersion == "Lua 5.1" then
         local module, error = loadfile(self._fileName)
         if module~=nil then
             module = setfenv(module, env)
         end
         return module, error
-    elseif _VERSION == "Lua 5.2" or _VERSION == "Lua 5.3"  then
+    elseif luaVersion == "Lua 5.2" or luaVersion == "Lua 5.3"  then
         return loadfile(self._fileName, "bt", env)
     end
 end
