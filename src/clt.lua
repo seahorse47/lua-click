@@ -83,10 +83,6 @@ local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 --- @field metavar string @ [Optional] Used for changing the meta variable in the help page.
 
 
---- @class clt.OptionConfigs : clt.OptionConfig[]
---- @field metavar string @ [Optional] Used for changing the meta variable in the help page.
-
-
 --- @class clt.ArgumentConfig
 --- @field name string @ [Optional] The variable name for the argument value.
 --- @field nargs integer @ [Optional] The number of arguments. Default value is 1.
@@ -95,30 +91,36 @@ local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 --- @field metavar string @ [Optional] Used for changing the meta variable in the help page.
 
 
---- @class clt.ArgumentConfigs : clt.ArgumentConfig[]
---- @field metavar string @ [Optional] Used for changing the meta variable in the help page.
+--- @class clt.OptionsParserConfig
+--- @field options_metavar string @ [Optional] Used for changing the meta variable
+---             for options in the help page.
+--- @field options clt.OptionConfig[] @ [Optional] Configurations for all options.
+--- @field arguments_metavar string @ [Optional]  Used for changing the meta variable
+---             for arguments in the help page.
+--- @field arguments clt.ArgumentConfig[] @ [Optional] Configurations for arguments.
 
 
 --- @class clt.OptionsParser
 local OptionsParser = class("OptionsParser")
 
 --- @desc Constructor of OptionsParser.
---- @param optionsConfig clt.OptionConfigs @ [Optional] Configurations for all options.
---- @param argsConfig clt.ArgumentConfigs @ [Optional] Configurations for arguments.
-function OptionsParser:initialize(optionsConfig, argsConfig)
+--- @param config clt.OptionsParserConfig @ Configurations for the parser.
+function OptionsParser:initialize(config)
     OptionsParser.__super__.initialize(self)
 
     self._optionsConfig = {}
+    local optionsConfig = config.options
     if optionsConfig~=nil then
         for i, optCfg in ipairs(optionsConfig) do
             self._optionsConfig[i] = self:_parseOptConfig(optCfg)
         end
-        self._optionsMetavar = optionsConfig.metavar or "[OPTIONS]"
+        self._optionsMetavar = config.options_metavar or "[OPTIONS]"
     else
-        self._optionsMetavar = ""
+        self._optionsMetavar = config.options_metavar or ""
     end
 
     self._argsConfig = {}
+    local argsConfig = config.arguments
     if argsConfig~=nil then
         local metavars = argsConfig.metavar==nil and {} or nil
         local minFollows = 0
@@ -132,13 +134,13 @@ function OptionsParser:initialize(optionsConfig, argsConfig)
                 minFollows = minFollows + arg.nargs
             end
             self._argsConfig[i] = arg
-            if metavars~=nil then
+            if metavars~=nil and arg.metavar~="" then
                 metavars[#metavars + 1] = arg.metavar
             end
         end
-        self._argumentsMetavar = argsConfig.metavar or table.concat(metavars, " ")
+        self._argumentsMetavar = config.arguments_metavar or table.concat(metavars, " ")
     else
-        self._argumentsMetavar = ""
+        self._argumentsMetavar = config.arguments_metavar or ""
     end
 end
 
@@ -233,7 +235,8 @@ function OptionsParser:_parseArgConfig(argCfg)
     local metavar = argCfg.metavar
     if metavar==nil then
         metavar = string.upper(name)
-        if nargs>1 then metavar = "[" .. metavar .. "...]" end
+        if nargs~=1 then metavar = metavar .. "..." end
+        if nargs<0 then metavar = "[" .. metavar .. "]" end
     end
     local finalConfig = {
         name = name,
@@ -585,9 +588,13 @@ end
 
 --- @class clt.BaseCommandConfig
 --- @field desc string @ [Optional] Description of the command.
+--- @field options_metavar string @ [Optional] Used for changing the meta variable
+---             for options in the help page.
+--- @field options clt.OptionConfig[] @ [Optional] Configurations for all options.
 --- @field help_option clt.HelpConfig @ [Optional] The configuration for help option.
---- @field options clt.OptionConfigs @ [Optional] Configurations for all options.
---- @field arguments clt.ArgumentConfigs[] @ [Optional] Configurations for arguments.
+--- @field arguments_metavar string @ [Optional]  Used for changing the meta variable
+---             for arguments in the help page.
+--- @field arguments clt.ArgumentConfig[] @ [Optional] Configurations for arguments.
 
 
 --- @class clt.BaseCommand
@@ -599,12 +606,19 @@ function BaseCommand:initialize(cfg)
     BaseCommand.__super__.initialize(self)
     self._description = cfg and cfg.desc or string.format("<%s>", self.__class__.__name__)
     local optionsConfig = cfg and cfg.options or {}
-    if optionsConfig.metavar==nil then
-        optionsConfig.metavar = #optionsConfig > 0 and "[OPTIONS]" or ""
+    local optionsMetavar = cfg and cfg.options_metavar
+    if optionsMetavar==nil then
+        optionsMetavar = #optionsConfig > 0 and "[OPTIONS]" or ""
     end
     -- optionsConfig[#optionsConfig + 1] = self:_makeHelpOption(cfg)
     local argsConfig = cfg and cfg.arguments
-    self._optionsParser = OptionsParser(optionsConfig, argsConfig)
+    local argsMetavar = cfg and cfg.arguments_metavar
+    self._optionsParser = OptionsParser({
+        options_metavar = optionsMetavar,
+        options = optionsConfig,
+        arguments_metavar = argsMetavar,
+        arguments = argsConfig,
+    })
     self:_setupHelpOption(self._optionsParser, cfg)
     self._ignoreExtraArguments = false
 end
@@ -750,7 +764,7 @@ end
 ---             subcommand in one go.
 --- @field entry_func function @ [Optional] The entry function of this command.
 --- @field subcommand_metavar string @ [Optional] Used for changing the meta variable
----             in the help page.
+---             for subcommand in the help page.
 
 
 --- @class clt.CommandGroup
