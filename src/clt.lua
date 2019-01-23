@@ -543,7 +543,7 @@ function OptionsParser:errorToString(error)
         if error.arg~=nil then
             local args = error.args
             if args==nil or #args==0 then
-                return string.format("Missing argument \"%s\"", error.arg.name)
+                return string.format("Missing argument \"%s\"", error.arg.metavar)
             else
                 local nargs = error.arg.nargs_min
                 return string.format("Argument \"%s\" requires at least %d %s",
