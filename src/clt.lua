@@ -85,8 +85,9 @@ local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 
 --- @class clt.ArgumentConfig
 --- @field name string @ [Optional] The variable name for the argument value.
---- @field nargs integer @ [Optional] The number of arguments. Default value is 1.
+--- @field nargs integer|integer[] @ [Optional] The number of arguments. Default value is 1.
 ---             If it is set to -1, then an unlimited number of arguments is accepted.
+---             If it is an array, then the number of arguments is limited in [nargs[1], nargs[2]]
 --- @field help string @ [Optional] The description of this argument displayed in the help page.
 --- @field metavar string @ [Optional] Used for changing the meta variable in the help page.
 
@@ -126,13 +127,8 @@ function OptionsParser:initialize(config)
         local minFollows = 0
         for i = #argsConfig, 1, -1 do
             local arg = self:_parseArgConfig(argsConfig[i])
-            if arg.nargs<0 then
-                assert(minFollows>=0, "Arguments CANNOT have two nargs < 0")
-                arg.nargs = -1 - minFollows
-                minFollows = -1
-            elseif minFollows>=0 then
-                minFollows = minFollows + arg.nargs
-            end
+            arg.min_follows = minFollows
+            minFollows = minFollows + arg.nargs_min
             self._argsConfig[i] = arg
             if metavars~=nil and arg.metavar~="" then
                 metavars[#metavars + 1] = arg.metavar
@@ -232,15 +228,30 @@ function OptionsParser:_parseArgConfig(argCfg)
     local name = argCfg.name
     assert(name~=nil, "Argument must have a name")
     local nargs = argCfg.nargs or 1
+    local nargs_min, nargs_max
+    local nargsType = type(nargs)
+    assert(nargsType=="number" or nargsType=="table",
+        "Argument nargs MUST be an integer or an integer array")
+    if nargsType=="number" then
+        nargs_min, nargs_max = nargs, nargs
+    elseif nargsType=="table" then
+        nargs_min, nargs_max = nargs[1] or 0, nargs[2] or -1
+    else
+        nargs_min, nargs_max = 1, 1
+    end
+    if nargs_min<0 then
+        nargs_min = 0
+    end
     local metavar = argCfg.metavar
     if metavar==nil then
         metavar = string.upper(name)
-        if nargs~=1 then metavar = metavar .. "..." end
-        if nargs<0 then metavar = "[" .. metavar .. "]" end
+        if nargs_max~=1 then metavar = metavar .. "..." end
+        if nargs_min==0 then metavar = "[" .. metavar .. "]" end
     end
     local finalConfig = {
         name = name,
-        nargs = nargs,
+        nargs_min = nargs_min,
+        nargs_max = nargs_max,
         metavar = metavar,
         help = argCfg.help or nil,
     }
@@ -479,18 +490,18 @@ function OptionsParser:parseArguments(context, tokens, index)
     end
     local arguments = context.arguments
     for i, arg in ipairs(self._argsConfig) do
-        local nargs, values = arg.nargs, nil
+        local nargs, values
+        nargs = arg.nargs_max
         if nargs<0 then
-            nargs = #tokens - index - nargs
-            if nargs<0 then nargs = 0 end
+            nargs = #tokens - index + 1 - arg.min_follows
         end
         values, index = self:_parseArguments(tokens, index, nargs)
-        if arg.nargs==1 then
+        if arg.nargs_max==1 then
             arguments[arg.name] = values[1]
         else
             arguments[arg.name] = values
         end
-        if #values<nargs then
+        if #values<arg.nargs_min then
             context:appendError({
                                     type = OPT_ERROR_INADEQUATE_ARGS,
                                     arg = arg,
@@ -534,9 +545,9 @@ function OptionsParser:errorToString(error)
             if args==nil or #args==0 then
                 return string.format("Missing argument \"%s\"", error.arg.name)
             else
-                local nargs = error.arg.nargs
-                return string.format("Argument \"%s\" requires %d %s",
-                                     error.arg.name,
+                local nargs = error.arg.nargs_min
+                return string.format("Argument \"%s\" requires at least %d %s",
+                                     error.arg.metavar,
                                      nargs,
                                      nargs>1 and "arguments" or "argument"
                 )
