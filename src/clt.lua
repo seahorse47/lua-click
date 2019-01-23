@@ -264,12 +264,12 @@ end
 
 function OptionsParser:printOptionsDescription(title, indents, print)
     if #self._optionsConfig>0 then
-        local lines, width = {}, 19
+        local lines, width = {}, 18
         local format = string.format
         for i, opt in ipairs(self._optionsConfig) do
             local metavar = opt.opt .. " " .. opt.metavar
             local len = metavar:len()
-            if len >= width then width = 4*math.floor((len+3)/4) - 1 end
+            if len >= width then width = 4*math.floor((len+3)/4) - 2 end
             lines[#lines + 1] = {metavar, opt.help or ""}
         end
         if #lines > 0 then
@@ -289,12 +289,12 @@ end
 
 function OptionsParser:printArgumentsDescription(title, indents, print)
     if #self._argsConfig>0 then
-        local lines, width = {}, 19
+        local lines, width = {}, 18
         local format = string.format
         for i, arg in ipairs(self._argsConfig) do
             local metavar = arg.metavar
             local len = metavar:len()
-            if len >= width then width = 4*math.floor((len+3)/4) - 1 end
+            if len >= width then width = 4*math.floor((len+3)/4) - 2 end
             if arg.help~=nil then
                 lines[#lines + 1] = {metavar, arg.help}
             end
@@ -810,10 +810,10 @@ end
 
 function CommandGroup:printCommandsDescription(title, indents)
     self:printf("%s", title)
-    local subcommands, width = {}, 19
+    local subcommands, width = {}, 18
     for name, cmd in pairs(self._subCommands) do
         local len = name:len()
-        if len >= width then width = 4*math.floor((len+3)/4) - 1 end
+        if len >= width then width = 4*math.floor((len+3)/4) - 2 end
         subcommands[#subcommands + 1] = { name = name, cmd = cmd }
     end
     table.sort(subcommands, function (a, b)
