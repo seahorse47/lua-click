@@ -78,6 +78,7 @@ local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 --- @field multiple boolean @ [Optional] Whether this option can be provided multiple times.
 --- @field nargs integer @ [Optional] The number of option arguments. Default value is 1.
 --- @field default @ [Optional] The default value of this option.
+--- @field callback function @ [Optional] A callback that executes after the option is handled.
 --- @field help string @ [Optional] The description of this option displayed in the help page.
 --- @field metavar string @ [Optional] Used for changing the meta variable in the help page.
 
@@ -141,56 +142,11 @@ function OptionsParser:initialize(optionsConfig, argsConfig)
     end
 end
 
-function OptionsParser:getOptionsMetavar()
-    return self._optionsMetavar
-end
-
-function OptionsParser:printOptionsDescription(title, indents, print)
-    if #self._optionsConfig>0 then
-        local lines, width = {}, 19
-        local format = string.format
-        for i, opt in ipairs(self._optionsConfig) do
-            local metavar = opt.opt .. " " .. opt.metavar
-            local len = metavar:len()
-            if len >= width then width = 4*math.floor((len+3)/4) - 1 end
-            lines[#lines + 1] = {metavar, opt.help or ""}
-        end
-        if #lines > 0 then
-            print(title)
-            local fmt = "%s%-" .. width .. "s  %s"
-            for i = 1, #lines do
-                local line = lines[i]
-                print(format(fmt, indents, line[1], line[2]))
-            end
-        end
-    end
-end
-
-function OptionsParser:getArgumentsMetavar()
-    return self._argumentsMetavar
-end
-
-function OptionsParser:printArgumentsDescription(title, indents, print)
-    if #self._argsConfig>0 then
-        local lines, width = {}, 19
-        local format = string.format
-        for i, arg in ipairs(self._argsConfig) do
-            local metavar = arg.metavar
-            local len = metavar:len()
-            if len >= width then width = 4*math.floor((len+3)/4) - 1 end
-            if arg.help~=nil then
-                lines[#lines + 1] = {metavar, arg.help}
-            end
-        end
-        if #lines > 0 then
-            print(title)
-            local fmt = "%s%-" .. width .. "s  %s"
-            for i = 1, #lines do
-                local line = lines[i]
-                print(format(fmt, indents, line[1], line[2]))
-            end
-        end
-    end
+--- @desc Append an extra option config.
+--- @param optionConfig clt.OptionConfig @ The extra option config.
+function OptionsParser:appendOption(optionConfig)
+    local optionsConfig = self._optionsConfig
+    optionsConfig[#optionsConfig + 1] = self:_parseOptConfig(optionConfig)
 end
 
 --- #private
@@ -217,16 +173,19 @@ function OptionsParser:_parseOptConfig(optCfg)
     local finalConfig = {
         name = name,
         opt = optString,
+        is_flag = is_flag,
         opts = opts,
         opts_on = opts_on,
         opts_off = opts_off,
         required = optCfg.required and true or false,
-        -- multiple = optCfg.multiple and true or false,
         help = optCfg.help or nil,
+        callback = optCfg.callback,
     }
     if is_flag then
         finalConfig.nargs = 0
-        finalConfig.default = optCfg.default and true or false
+        if optCfg.default then
+            finalConfig.default = true
+        end
         finalConfig.metavar = ""
     else
         assert(optCfg.nargs==nil or optCfg.nargs>0, "Option CANNOT have nargs <= 0")
@@ -285,6 +244,58 @@ function OptionsParser:_parseArgConfig(argCfg)
     return finalConfig
 end
 
+function OptionsParser:getOptionsMetavar()
+    return self._optionsMetavar
+end
+
+function OptionsParser:printOptionsDescription(title, indents, print)
+    if #self._optionsConfig>0 then
+        local lines, width = {}, 19
+        local format = string.format
+        for i, opt in ipairs(self._optionsConfig) do
+            local metavar = opt.opt .. " " .. opt.metavar
+            local len = metavar:len()
+            if len >= width then width = 4*math.floor((len+3)/4) - 1 end
+            lines[#lines + 1] = {metavar, opt.help or ""}
+        end
+        if #lines > 0 then
+            print(title)
+            local fmt = "%s%-" .. width .. "s  %s"
+            for i = 1, #lines do
+                local line = lines[i]
+                print(format(fmt, indents, line[1], line[2]))
+            end
+        end
+    end
+end
+
+function OptionsParser:getArgumentsMetavar()
+    return self._argumentsMetavar
+end
+
+function OptionsParser:printArgumentsDescription(title, indents, print)
+    if #self._argsConfig>0 then
+        local lines, width = {}, 19
+        local format = string.format
+        for i, arg in ipairs(self._argsConfig) do
+            local metavar = arg.metavar
+            local len = metavar:len()
+            if len >= width then width = 4*math.floor((len+3)/4) - 1 end
+            if arg.help~=nil then
+                lines[#lines + 1] = {metavar, arg.help}
+            end
+        end
+        if #lines > 0 then
+            print(title)
+            local fmt = "%s%-" .. width .. "s  %s"
+            for i = 1, #lines do
+                local line = lines[i]
+                print(format(fmt, indents, line[1], line[2]))
+            end
+        end
+    end
+end
+
 --- @param tokens string[] @ Array of argument tokens.
 --- @param index integer @ Index of next argument token.
 --- @return table @ The context for parsing options.
@@ -313,17 +324,28 @@ function OptionsParser:startParsing(tokens, index)
 
     context.finishOnError = true
     context.error = nil -- first error
-    context.last_error = nil -- last error
+    context.lastError = nil -- last error
     function context:appendError(err)
         if err==nil then return end
-        if self.last_error~=nil then
-            self.last_error.next = err
+        if self.lastError~=nil then
+            self.lastError.next = err
         else
             self.error = err
         end
-        self.last_error = err
+        self.lastError = err
         if self.finishOnError then
             self.finished = true
+        end
+    end
+
+    function context:exit(exitCode)
+        self.finished = true
+        if self.exitCode==nil then
+            if type(exitCode)=="number" then
+                self.exitCode = exitCode
+            else
+                self.exitCode = (exitCode==nil or exitCode) and 0 or -1
+            end
         end
     end
 
@@ -426,6 +448,9 @@ function OptionsParser:parseNextOption(context, tokens, index)
             -- XXX If the value is already exists, overwrite it.
             context.optionValues[name] = value
         end
+        if matched.callback~=nil then
+            matched.callback(context, name, value)
+        end
         return index, name, value
     end
 end
@@ -518,12 +543,39 @@ function OptionsParser:errorToString(error)
     return string.format("Parsing option error: %s", error.type)
 end
 
+--- @return integer|nil, ... @ The first value is exit code.
+function OptionsParser:parse(args, command, proc)
+    local index, opt, value = args.optidx, nil, nil
+    local context = self:startParsing(args, index)
+    context.command = command
+    context.proc = proc
+    local optionValues = context.optionValues
+    while true do
+        index, opt, value = self:parseNextOption(context, args, index)
+        if opt==nil then break end
+        if context.finished then break end
+    end
+    index = self:parseArguments(context, args, index)
+    self:finishParsing(context)
+    args.optidx = index
+
+    if context.exitCode~=nil then
+        return context.exitCode
+    end
+
+    if context.error~=nil then
+        return -1, context.error
+    end
+
+    return nil, context.optionValues, context.arguments
+end
+
 
 --------------------------------------------------------------------------------
 --- command classes
 
-local function isFailed(retCode)
-    return retCode~=nil and retCode~=true and retCode~=0
+local function isFailed(exitCode)
+    return exitCode~=nil and exitCode~=true and exitCode~=0
 end
 
 
@@ -550,23 +602,34 @@ function BaseCommand:initialize(cfg)
     if optionsConfig.metavar==nil then
         optionsConfig.metavar = #optionsConfig > 0 and "[OPTIONS]" or ""
     end
-    optionsConfig[#optionsConfig + 1] = self:_makeHelpOption(cfg)
+    -- optionsConfig[#optionsConfig + 1] = self:_makeHelpOption(cfg)
     local argsConfig = cfg and cfg.arguments
     self._optionsParser = OptionsParser(optionsConfig, argsConfig)
+    self:_setupHelpOption(self._optionsParser, cfg)
     self._ignoreExtraArguments = false
 end
 
-function BaseCommand:_makeHelpOption(cfg)
+function BaseCommand:_setupHelpOption(optionsParser, cfg)
     local helpOption = cfg and cfg.help_option or { "--help", }
-    if not helpOption.disabled then
-        helpOption.name = "$HELP"
-        helpOption.is_flag = true
-        if helpOption.help==nil then
-            helpOption.help = "Show this message and exit."
-        end
-        return helpOption
+    if helpOption.disabled then
+        return
     end
-    return nil
+    if helpOption==cfg.help_option then
+        local helpOption = {}
+        for k, v in pairs(cfg.help_option) do helpOption[k] = v end
+    end
+    helpOption.name = "$HELP"
+    helpOption.is_flag = true
+    if helpOption.help==nil then
+        helpOption.help = "Show this message and exit."
+    end
+    if helpOption.callback==nil then
+        helpOption.callback = function (ctx, name, value)
+            ctx.command:help(ctx.proc)
+            ctx:exit(0)
+        end
+    end
+    optionsParser:appendOption(helpOption)
 end
 
 function BaseCommand:printf(fmt, ...)
@@ -629,55 +692,31 @@ function BaseCommand:checkExtraArguments(proc)
     return false
 end
 
---- @return boolean, table, table
-function BaseCommand:parseOptions(proc, args, execBuiltinActions)
+--- @return integer|nil, ...
+function BaseCommand:parseOptions(proc, args)
+    local optionsParser = self._optionsParser
     if args==nil then
         args = self._extraArgs
     end
 
-    local builtinAction
-    local allBuiltinActions
-    if execBuiltinActions then
-        allBuiltinActions = { "$HELP", }
-    end
+    args.optidx = 1
+    local exitCode, extra1, extra2 = optionsParser:parse(args, self, proc)
 
-    local optionsParser = self._optionsParser
-    local index, opt, value = 1, nil, nil
-    local context = optionsParser:startParsing(args, index)
-    local optionValues = context.optionValues
-    while true do
-        index, opt, value = optionsParser:parseNextOption(context, args, index)
-        if opt==nil then break end
-        if allBuiltinActions~=nil then
-            for i, action in ipairs(allBuiltinActions) do
-                if optionValues[action] then builtinAction = action; break end
-            end
-            if builtinAction~=nil then
-                break
-            end
-        end
-    end
-    index = optionsParser:parseArguments(context, args, index)
-    optionsParser:finishParsing(context)
-
-    if index>1 then
-        self._extraArgs = self:shiftArgs(index-1, args)
+    if args.optidx>1 then
+        self._extraArgs = self:shiftArgs(args.optidx-1, args)
     else
         self._extraArgs = args
     end
 
-    if builtinAction=="$HELP" then
-        self:help(proc)
-        return 0
+    if exitCode~=nil then
+        if exitCode==-1 and extra1~=nil then
+            self:usage(proc)
+            self:printf("\n[error] %s", optionsParser:errorToString(extra1))
+        end
+        return exitCode
+    else
+        return nil, extra1, extra2
     end
-
-    if context.error~=nil then
-        self:usage(proc)
-        self:printf("\n[error] %s", optionsParser:errorToString(context.error))
-        return -1, context.error
-    end
-
-    return nil, context.optionValues, context.arguments
 end
 
 function BaseCommand:shiftArgs(n, args)
@@ -763,15 +802,15 @@ function CommandGroup:printCommandsDescription(title, indents)
 end
 
 function CommandGroup:execute(proc, args)
-    local retCode, options, arguments = self:parseOptions(proc, args, true)
-    if retCode~=nil then
-        return retCode
+    local exitCode, options, arguments = self:parseOptions(proc, args)
+    if exitCode~=nil then
+        return exitCode
     end
 
     if self._entryFunction~=nil then
-        retCode = self._entryFunction(self, options, arguments)
-        if retCode~=nil then
-            return retCode
+        exitCode = self._entryFunction(self, options, arguments)
+        if exitCode~=nil then
+            return exitCode
         end
     end
 
@@ -797,10 +836,10 @@ function CommandGroup:execute(proc, args)
         cmd:setContext(self:getContext())
         cmd:ignoreExtraArguments(self._ignoreExtraArguments)
         local subProc = proc.." "..cmdName
-        retCode = cmd:execute(subProc, self:shiftArgs(1, args))
+        exitCode = cmd:execute(subProc, self:shiftArgs(1, args))
         self._extraArgs = cmd:getExtraArguments()
-        if isFailed(retCode) then
-            return retCode
+        if isFailed(exitCode) then
+            return exitCode
         end
     else
         while cmdName~=nil do
@@ -814,9 +853,9 @@ function CommandGroup:execute(proc, args)
             cmd:ignoreExtraArguments(true)
             local subProc = proc.." "..cmdName
             args = self:shiftArgs(1, args)
-            retCode = cmd:execute(subProc, args)
-            if isFailed(retCode) then
-                return retCode
+            exitCode = cmd:execute(subProc, args)
+            if isFailed(exitCode) then
+                return exitCode
             end
             args = cmd:getExtraArguments()
             self._extraArgs = args
@@ -853,9 +892,9 @@ function FunctionCommand:initialize(cfg)
 end
 
 function FunctionCommand:execute(proc, args)
-    local retCode, options, arguments = self:parseOptions(proc, args, true)
-    if retCode~=nil then
-        return retCode
+    local exitCode, options, arguments = self:parseOptions(proc, args)
+    if exitCode~=nil then
+        return exitCode
     end
     if not self:checkExtraArguments(proc) then
         return -1
@@ -895,9 +934,9 @@ function ExecuteFileCommand:loadFileWithEnv(filename, env)
 end
 
 function ExecuteFileCommand:execute(proc, args)
-    local retCode, options, arguments = self:parseOptions(proc, args, true)
-    if retCode~=nil then
-        return retCode
+    local exitCode, options, arguments = self:parseOptions(proc, args)
+    if exitCode~=nil then
+        return exitCode
     end
     if not self:checkExtraArguments(proc) then
         return -1
@@ -964,13 +1003,13 @@ end
 --- @param proc string @ The name of the procedure.
 --- @param args string[] @ The arguments array.
 local function main(command, proc, args)
-    local retCode = exec(command, proc~="" and proc or procName(), args)
-    if not isFailed(retCode) then
-        retCode = 0
-    elseif type(retCode)~="number" then
-        retCode = -1
+    local exitCode = exec(command, proc~="" and proc or procName(), args)
+    if not isFailed(exitCode) then
+        exitCode = 0
+    elseif type(exitCode)~="number" then
+        exitCode = -1
     end
-    return os.exit(retCode)
+    return os.exit(exitCode)
 end
 
 
