@@ -1004,8 +1004,15 @@ local function __name__()
     end
 end
 
-local function procName()
-    return debug.getinfo(3, "S").short_src
+local function procName(args)
+    local filename = args[0]
+    if filename==nil then
+        return "lua " .. debug.getinfo(3, "S").short_src
+    else
+        local i = -1
+        while args[i] do i = i - 1 end
+        return args[i+1] .. " " .. filename
+    end
 end
 
 --- @desc Execute the command.
@@ -1016,7 +1023,7 @@ local function exec(command, proc, args)
     local context = {}
     command:setContext(context)
     command:ignoreExtraArguments(false)
-    return command:execute(proc~="" and proc or procName(), args)
+    return command:execute(proc~="" and proc or procName(args), args)
 end
 
 --- @desc Execute the command and exit the program.
@@ -1024,7 +1031,7 @@ end
 --- @param proc string @ The name of the procedure.
 --- @param args string[] @ The arguments array.
 local function main(command, proc, args)
-    local exitCode = exec(command, proc~="" and proc or procName(), args)
+    local exitCode = exec(command, proc~="" and proc or procName(args), args)
     if not isFailed(exitCode) then
         exitCode = 0
     elseif type(exitCode)~="number" then

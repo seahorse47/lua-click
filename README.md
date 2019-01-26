@@ -30,6 +30,6 @@ local mainCommand = clt.FunctionCommand {
 }
 
 if clt.__name__()=="__main__" then
-    clt.main(mainCommand, nil, {...})
+    clt.main(mainCommand, nil, arg)
 end
 ```
