@@ -262,52 +262,27 @@ function OptionsParser:getOptionsMetavar()
     return self._optionsMetavar
 end
 
-function OptionsParser:printOptionsDescription(title, indents, print)
-    if #self._optionsConfig>0 then
-        local lines, width = {}, 18
-        local format = string.format
-        for i, opt in ipairs(self._optionsConfig) do
-            local metavar = opt.opt .. " " .. opt.metavar
-            local len = metavar:len()
-            if len >= width then width = 4*math.floor((len+3)/4) - 2 end
-            lines[#lines + 1] = {metavar, opt.help or ""}
-        end
-        if #lines > 0 then
-            print(title)
-            local fmt = "%s%-" .. width .. "s  %s"
-            for i = 1, #lines do
-                local line = lines[i]
-                print(format(fmt, indents, line[1], line[2]))
-            end
-        end
+function OptionsParser:getOptionsDetailMetavars()
+    local lines = {}
+    for i, opt in ipairs(self._optionsConfig) do
+        local metavar = opt.opt .. " " .. opt.metavar
+        lines[#lines + 1] = {metavar, opt.help or ""}
     end
+    return lines
 end
 
 function OptionsParser:getArgumentsMetavar()
     return self._argumentsMetavar
 end
 
-function OptionsParser:printArgumentsDescription(title, indents, print)
-    if #self._argsConfig>0 then
-        local lines, width = {}, 18
-        local format = string.format
-        for i, arg in ipairs(self._argsConfig) do
-            local metavar = arg.metavar
-            local len = metavar:len()
-            if len >= width then width = 4*math.floor((len+3)/4) - 2 end
-            if arg.help~=nil then
-                lines[#lines + 1] = {metavar, arg.help}
-            end
-        end
-        if #lines > 0 then
-            print(title)
-            local fmt = "%s%-" .. width .. "s  %s"
-            for i = 1, #lines do
-                local line = lines[i]
-                print(format(fmt, indents, line[1], line[2]))
-            end
+function OptionsParser:getArgumentsDetailMetavars()
+    local lines = {}
+    for i, arg in ipairs(self._argsConfig) do
+        if arg.help~=nil then
+            lines[#lines + 1] = {arg.metavar, arg.help}
         end
     end
+    return lines
 end
 
 --- @param tokens string[] @ Array of argument tokens.
@@ -686,9 +661,43 @@ end
 
 function BaseCommand:help(proc)
     self:usage(proc, true)
-    local printFunc = function (msg) self:printf("%s", msg) end
-    self._optionsParser:printOptionsDescription("\nOptions:", "  ", printFunc)
-    self._optionsParser:printArgumentsDescription("\nArguments:", "  ", printFunc)
+    local indents = "  "
+    local options = self._optionsParser:getOptionsDetailMetavars()
+    if #options>0 then
+        self:printHelpSection("\nOptions:", options, indents)
+    end
+    local arguments = self._optionsParser:getArgumentsDetailMetavars()
+    if #arguments>0 then
+        self:printHelpSection("\nArguments:", arguments, indents)
+    end
+end
+
+function BaseCommand:printHelpSection(title, lines, indents)
+    if lines==nil then
+        return
+    end
+
+    -- calculate the maximum width of head part
+    local width = 10
+    for i, line in ipairs(lines) do
+        local len = line[1]:len()
+        if len>width then
+            width = 4*math.floor((len+3)/4) - 2
+        end
+    end
+    if width>30 then width = 30 end
+
+    self:printf("%s", title)
+    local fmt = "%s%-" .. width .. "s  %s"
+    for i, line in ipairs(lines) do
+        local head, desc = line[1], line[2]
+        if head:len()>width then
+            self:printf("%s%s", indents, head)
+            self:printf(fmt, indents, "", desc)
+        else
+            self:printf(fmt, indents, head, desc)
+        end
+    end
 end
 
 function BaseCommand:execute(proc, args)
@@ -805,25 +814,12 @@ end
 
 function CommandGroup:help(proc)
     CommandGroup.__super__.help(self, proc)
-    self:printCommandsDescription("\nCommands:", "  ")
-end
-
-function CommandGroup:printCommandsDescription(title, indents)
-    self:printf("%s", title)
-    local subcommands, width = {}, 18
+    local subcommands = {}
     for name, cmd in pairs(self._subCommands) do
-        local len = name:len()
-        if len >= width then width = 4*math.floor((len+3)/4) - 2 end
-        subcommands[#subcommands + 1] = { name = name, cmd = cmd }
+        subcommands[#subcommands + 1] = { name, cmd }
     end
-    table.sort(subcommands, function (a, b)
-        return a.name < b.name
-    end)
-    local fmt = "%s%-" .. width .. "s  %s"
-    for i = 1, #subcommands do
-        local info = subcommands[i]
-        self:printf(fmt, indents, info.name, info.cmd:description())
-    end
+    table.sort(subcommands, function (a, b) return a[1] < b[1] end)
+    self:printHelpSection("\nCommands:", subcommands, "  ")
 end
 
 function CommandGroup:execute(proc, args)
