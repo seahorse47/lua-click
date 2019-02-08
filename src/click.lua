@@ -1,8 +1,8 @@
 --[[
-    Filename:    clt.lua
+    Filename:    click.lua
     Author:      chenhailong
     Datetime:    2018-11-30 20:25:51
-    Description: Command line tool
+    Description: Command line interface creation kit.
 --]]
 
 local function classMeta(cls)
@@ -22,7 +22,7 @@ local function classMeta(cls)
     }
 end
 
---- @class clt.Object
+--- @class click.Object
 local Object = {__name__ = "Object"}
 Object = setmetatable(Object, classMeta(Object))
 
@@ -65,7 +65,7 @@ local OPT_ERROR_MISSING_OPTION = "MISSING_OPTION"
 local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 
 
---- @class clt.OptionConfig
+--- @class click.OptionConfig
 --- @field 1 string @ Alias for `opt` field.
 --- @field opt string @ The option definition in these forms:
 ---             "-v", "-v, --version", "-s, --shout / --no-shout"
@@ -82,7 +82,7 @@ local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 --- @field metavar string @ [Optional] Used for changing the meta variable in the help page.
 
 
---- @class clt.ArgumentConfig
+--- @class click.ArgumentConfig
 --- @field name string @ [Optional] The variable name for the argument value.
 --- @field nargs integer|integer[] @ [Optional] The number of arguments. Default value is 1.
 ---             If it is set to -1, then an unlimited number of arguments is accepted.
@@ -91,20 +91,20 @@ local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 --- @field metavar string @ [Optional] Used for changing the meta variable in the help page.
 
 
---- @class clt.OptionsParserConfig
+--- @class click.OptionsParserConfig
 --- @field options_metavar string @ [Optional] Used for changing the meta variable
 ---             for options in the help page.
---- @field options clt.OptionConfig[] @ [Optional] Configurations for all options.
+--- @field options click.OptionConfig[] @ [Optional] Configurations for all options.
 --- @field arguments_metavar string @ [Optional]  Used for changing the meta variable
 ---             for arguments in the help page.
---- @field arguments clt.ArgumentConfig[] @ [Optional] Configurations for arguments.
+--- @field arguments click.ArgumentConfig[] @ [Optional] Configurations for arguments.
 
 
---- @class clt.OptionsParser
+--- @class click.OptionsParser
 local OptionsParser = class("OptionsParser")
 
 --- @desc Constructor of OptionsParser.
---- @param config clt.OptionsParserConfig @ Configurations for the parser.
+--- @param config click.OptionsParserConfig @ Configurations for the parser.
 function OptionsParser:initialize(config)
     OptionsParser.__super__.initialize(self)
 
@@ -140,7 +140,7 @@ function OptionsParser:initialize(config)
 end
 
 --- @desc Append an extra option config.
---- @param optionConfig clt.OptionConfig @ The extra option config.
+--- @param optionConfig click.OptionConfig @ The extra option config.
 function OptionsParser:appendOption(optionConfig)
     local optionsConfig = self._optionsConfig
     optionsConfig[#optionsConfig + 1] = self:_parseOptConfig(optionConfig)
@@ -567,26 +567,26 @@ local function isFailed(exitCode)
 end
 
 
---- @class clt.HelpConfig : clt.OptionConfig
+--- @class click.HelpConfig : click.OptionConfig
 --- @field disabled boolean @ [Optional] Whether disable the help option. Default value is false.
 
 
---- @class clt.BaseCommandConfig
+--- @class click.BaseCommandConfig
 --- @field desc string @ [Optional] Description of the command.
 --- @field options_metavar string @ [Optional] Used for changing the meta variable
 ---             for options in the help page.
---- @field options clt.OptionConfig[] @ [Optional] Configurations for all options.
---- @field help_option clt.HelpConfig @ [Optional] The configuration for help option.
+--- @field options click.OptionConfig[] @ [Optional] Configurations for all options.
+--- @field help_option click.HelpConfig @ [Optional] The configuration for help option.
 --- @field arguments_metavar string @ [Optional]  Used for changing the meta variable
 ---             for arguments in the help page.
---- @field arguments clt.ArgumentConfig[] @ [Optional] Configurations for arguments.
+--- @field arguments click.ArgumentConfig[] @ [Optional] Configurations for arguments.
 
 
---- @class clt.BaseCommand
+--- @class click.BaseCommand
 local BaseCommand = class("BaseCommand")
 
 --- @desc Constructor of BaseCommand.
---- @param cfg clt.BaseCommandConfig @ Configuration for the command.
+--- @param cfg click.BaseCommandConfig @ Configuration for the command.
 function BaseCommand:initialize(cfg)
     BaseCommand.__super__.initialize(self)
     self._description = cfg and cfg.desc or string.format("<%s>", self.__class__.__name__)
@@ -778,7 +778,7 @@ function BaseCommand:getContext(context)
 end
 
 
---- @class clt.CommandGroupConfig : clt.BaseCommandConfig
+--- @class click.CommandGroupConfig : click.BaseCommandConfig
 --- @field chain boolean @ [Optional] Whether it is allowed to invoke more than one
 ---             subcommand in one go.
 --- @field entry_func function @ [Optional] The entry function of this command.
@@ -786,11 +786,11 @@ end
 ---             for subcommand in the help page.
 
 
---- @class clt.CommandGroup
+--- @class click.CommandGroup
 local CommandGroup = class("CommandGroup", BaseCommand)
 
 --- @desc Constructor of CommandGroup.
---- @param cfg clt.CommandGroupConfig @ Configuration for the command.
+--- @param cfg click.CommandGroupConfig @ Configuration for the command.
 function CommandGroup:initialize(cfg)
     CommandGroup.__super__.initialize(self, cfg)
     self._subCommands = {}
@@ -895,15 +895,15 @@ function CommandGroup:addCommand(name, command)
 end
 
 
---- @class clt.FunctionCommand
+--- @class click.FunctionCommand
 local FunctionCommand = class("FunctionCommand", BaseCommand)
 
---- @class clt.FunctionCommandConfig : clt.BaseCommandConfig
+--- @class click.FunctionCommandConfig : click.BaseCommandConfig
 --- @field entry_func function @ The entry function of this command.
 
 
 --- @desc Constructor of FunctionCommand.
---- @param cfg clt.FunctionCommandConfig @ Configuration for the command.
+--- @param cfg click.FunctionCommandConfig @ Configuration for the command.
 function FunctionCommand:initialize(cfg)
     FunctionCommand.__super__.initialize(self, cfg)
     assert(cfg~=nil, "`cfg` is required")
@@ -923,15 +923,15 @@ function FunctionCommand:execute(proc, args)
 end
 
 
---- @class clt.ExecuteFileCommandConfig : clt.BaseCommandConfig
+--- @class click.ExecuteFileCommandConfig : click.BaseCommandConfig
 --- @field entry_file string @ The path of the target file.
 
 
---- @class clt.ExecuteFileCommand
+--- @class click.ExecuteFileCommand
 local ExecuteFileCommand = class("ExecuteFileCommand", BaseCommand)
 
 --- @desc Constructor of ExecuteFileCommand.
---- @param cfg clt.ExecuteFileCommandConfig @ Configuration for the command.
+--- @param cfg click.ExecuteFileCommandConfig @ Configuration for the command.
 function ExecuteFileCommand:initialize(cfg)
     ExecuteFileCommand.__super__.initialize(self, cfg)
     assert(cfg~=nil, "`cfg` is required")
@@ -1015,7 +1015,7 @@ local function procName(args)
 end
 
 --- @desc Execute the command.
---- @param command clt.BaseCommand @ The command object to be executed.
+--- @param command click.BaseCommand @ The command object to be executed.
 --- @param proc string @ The name of the procedure.
 --- @param args string[] @ The arguments array.
 local function exec(command, proc, args)
@@ -1026,7 +1026,7 @@ local function exec(command, proc, args)
 end
 
 --- @desc Execute the command and exit the program.
---- @param command clt.BaseCommand @ The command object to be executed.
+--- @param command click.BaseCommand @ The command object to be executed.
 --- @param proc string @ The name of the procedure.
 --- @param args string[] @ The arguments array.
 local function main(command, proc, args)
@@ -1044,7 +1044,7 @@ end
 -- export classes and functions
 local _M = {}
 
-_M["_VERSION"] = "clt 0.1"
+_M["_VERSION"] = "click 0.1"
 
 _M["OptionsParser"] = OptionsParser
 _M["BaseCommand"] = BaseCommand

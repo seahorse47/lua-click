@@ -7,9 +7,9 @@ local function main(cmd, options, arguments)
     end
 end
 
-local clt = require("clt")
+local cli = require("click")
 
-local mainCommand = clt.FunctionCommand {
+local mainCommand = cli.FunctionCommand {
     desc = "Say hi to somebody.",
     options = {
         {"-s, --speaker", help="Specify the name of speaker."},
@@ -20,6 +20,6 @@ local mainCommand = clt.FunctionCommand {
     entry_func = main,
 }
 
-if clt.__name__()=="__main__" then
-    clt.main(mainCommand, nil, arg)
+if cli.__name__()=="__main__" then
+    cli.main(mainCommand, nil, arg)
 end

@@ -1,6 +1,15 @@
-# lua-clt
+# lua-click
 
-一个用于快速创建命令行程序的Lua模块。
+一个用于快速创建命令行程序的Lua模块。该项目从python库[click](https://pypi.org/project/click/)借鉴了不少灵感，项目名也沿用了"click"这一缩写（Command Line Interface Creation Kit）。
+
+## Dependencies
+
+唯一的依赖就是：
+
+* lua >= 5.1
+
+该模块已在`lua-5.1.5`, `lua-5.2.4`, `lua-5.3.5`下验证通过。
+
 
 ## Quick start
 
@@ -16,9 +25,9 @@ local function main(cmd, options, arguments)
     end
 end
 
-local clt = require("clt")
+local cli = require("click")
 
-local mainCommand = clt.FunctionCommand {
+local mainCommand = cli.FunctionCommand {
     desc = "Say hi to somebody.",
     options = {
         {"-s, --speaker", help="Specify the name of speaker."},
@@ -29,7 +38,7 @@ local mainCommand = clt.FunctionCommand {
     entry_func = main,
 }
 
-if clt.__name__()=="__main__" then
-    clt.main(mainCommand, nil, arg)
+if cli.__name__()=="__main__" then
+    cli.main(mainCommand, nil, arg)
 end
 ```

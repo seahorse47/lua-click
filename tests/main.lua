@@ -1,10 +1,10 @@
-local clt = require("clt")
+local cli = require("click")
 
 local function foo()
-    return clt.__name__()
+    return cli.__name__()
 end
 
-assert(clt.__name__()=="__main__")
+assert(cli.__name__()=="__main__")
 
 assert(foo~="__main__")
 
