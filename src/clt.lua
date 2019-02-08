@@ -4,7 +4,6 @@
     Datetime:    2018-11-30 20:25:51
     Description: Command line tool
 --]]
-module("clt", package.seeall)
 
 local function classMeta(cls)
     return {
@@ -1043,6 +1042,7 @@ end
 
 --------------------------------------------------------------------------------
 -- export classes and functions
+local _M = {}
 
 _M["_VERSION"] = "clt 0.1"
 
