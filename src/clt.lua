@@ -816,7 +816,7 @@ function CommandGroup:help(proc)
     CommandGroup.__super__.help(self, proc)
     local subcommands = {}
     for name, cmd in pairs(self._subCommands) do
-        subcommands[#subcommands + 1] = { name, cmd }
+        subcommands[#subcommands + 1] = { name, cmd:description() }
     end
     table.sort(subcommands, function (a, b) return a[1] < b[1] end)
     self:printHelpSection("\nCommands:", subcommands, "  ")
