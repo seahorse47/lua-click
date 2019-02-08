@@ -8,4 +8,6 @@ then
     # LUA="luajit"
 fi
 
+$LUA -v
+
 $LUA -e "package.path=package.path..[[;./src/?.lua]]" "$@"
