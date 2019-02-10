@@ -384,13 +384,25 @@ function OptionsParser:parseNextOption(context, tokens, index)
         return index, nil, nil
     end
 
+    local firstArgument
+    local sep = optName:find("=")
+    if sep~=nil then
+        firstArgument = optName:sub(sep+1)
+        optName = optName:sub(1, sep-1)
+    end
+
     local matched, value
     for i, opt in ipairs(self._optionsConfig) do
         if opt.opts then
             if opt.opts[optName] then
                 matched = opt
                 local args
-                args, index = self:_parseArguments(tokens, index, opt.nargs)
+                if firstArgument==nil then
+                    args, index = self:_parseArguments(tokens, index, opt.nargs)
+                else
+                    args, index = self:_parseArguments(tokens, index, opt.nargs-1)
+                    table.insert(args, 1, firstArgument)
+                end
                 if opt.nargs==1 then
                     value = args[1]
                 else
