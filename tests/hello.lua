@@ -1,8 +1,8 @@
--- HelloWorld.lua
+-- hello.lua
 
 local function main(cmd, options, arguments)
     print(string.format("Hi, %s!", arguments["name"]))
-    if options["speaker"]~=nil then
+    if not options["anonymous"] and options["speaker"]~=nil then
         print(string.format("%40s", "-- from " .. options["speaker"]))
     end
 end
@@ -11,8 +11,10 @@ local cli = require("click")
 
 local mainCommand = cli.FunctionCommand {
     desc = "Say hi to somebody.",
+    help_option = {"-h, --help"},
     options = {
-        {"-s, --speaker", help="Specify the name of speaker."},
+        {"-s, --speaker <name>", required=true, help="Specify the name of speaker."},
+        {"-a, --anonymous / -A, --no-anonymous", help="Whether hide the name of speaker."},
     },
     arguments = {
         {name="name", help="Your name."},
