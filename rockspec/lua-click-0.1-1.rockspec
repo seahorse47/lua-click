@@ -5,7 +5,7 @@ source = {
    tag = "v0.1",
 }
 description = {
-   summary = "Command line iterface creation kit.",
+   summary = "Command line interface creation kit.",
    detailed = [[
       This is a Lua package for creating beautiful command line interfaces in a composable way.
    ]],
