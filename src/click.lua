@@ -67,8 +67,9 @@ local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 
 --- @class click.OptionConfig
 --- @field 1 string @ Alias for `opt` field.
---- @field opt string @ The option definition in these forms:
----             "-v", "-v, --version", "-s, --shout / --no-shout"
+--- @field opt string @ The option specification like these:
+---             "-v", "-v, --version", "-s, --shout / --no-shout", "--count <int>"
+---             "/v", "/v, /version", "/s, /shout ; /no-shout", "/count:<int>"
 --- @field name string @ [Optional] The variable name for the option value.
 --- @field is_flag boolean @ [Optional] Whether this option is a boolean flag.
 ---             If there is a "/" in the `opt`, this field will be ignored and the
@@ -148,28 +149,31 @@ end
 
 --- #private
 function OptionsParser:_parseOptConfig(optCfg)
+    local optSpec = optCfg.opt or optCfg[1]
+    assert(type(optSpec)=="string", "Invalid option specification")
+    local isWindowsStyle = optSpec:sub(1, 1)=="/"
+    local switchSeparator = isWindowsStyle and ";" or "/"
     local name = optCfg.name
     local is_flag = optCfg.is_flag
-    local optString = optCfg.opt or optCfg[1]
-    local namesString = optString:gsub("%s", "")
-    local ssp = namesString:find("/") -- switch separator position
+    local ssp = optSpec:find(switchSeparator) -- switch separator position
     if ssp~=nil then is_flag = true end
     local opts, opts_on, opts_off
+    local hasMetavarsInSpec = false
     if is_flag then
         if ssp~=nil then
-            opts_on, opts_off = namesString:sub(1, ssp-1), namesString:sub(ssp+1)
+            opts_on, opts_off = optSpec:sub(1, ssp-1), optSpec:sub(ssp+1)
         else
-            opts_on, opts_off = namesString, ""
+            opts_on, opts_off = optSpec, ""
         end
         opts_on, name = self:_parseOptConfigNames(opts_on, name)
         opts_off, name = self:_parseOptConfigNames(opts_off, name)
     else
-        opts, name = self:_parseOptConfigNames(namesString, name)
+        opts, name, hasMetavarsInSpec = self:_parseOptConfigNames(optSpec, name)
     end
 
     local finalConfig = {
         name = name,
-        opt = optString,
+        opt = optSpec,
         is_flag = is_flag,
         opts = opts,
         opts_on = opts_on,
@@ -188,10 +192,14 @@ function OptionsParser:_parseOptConfig(optCfg)
         assert(optCfg.nargs==nil or optCfg.nargs>0, "Option CANNOT have nargs <= 0")
         finalConfig.nargs = optCfg.nargs or 1
         finalConfig.default = optCfg.default
-        if optCfg.metavar~=nil then
-            finalConfig.metavar = optCfg.metavar
+        if hasMetavarsInSpec then
+            finalConfig.metavar = ""
         else
-            finalConfig.metavar = finalConfig.nargs==1 and "<VALUE>" or "<VALUES...>"
+            if optCfg.metavar~=nil then
+                finalConfig.metavar = optCfg.metavar
+            else
+                finalConfig.metavar = finalConfig.nargs==1 and "<VALUE>" or "<VALUES...>"
+            end
         end
     end
     if optCfg.multiple then
@@ -205,11 +213,13 @@ function OptionsParser:_parseOptConfig(optCfg)
 end
 
 --- #private
-function OptionsParser:_parseOptConfigNames(namesString, varName)
-    local pattern = "(%-+)([%w_%-]*),*"
+function OptionsParser:_parseOptConfigNames(optSpec, varName)
+    local optionPattern = "%s*([%-%/]+)([%w_%-]+)"
+    local skipPattern = "^%s*([^,]*),*"
     local opts = {}
     local tmpName = varName==nil and "" or nil
-    local s, e, prefix, name = namesString:find(pattern)
+    local s, e, prefix, name = optSpec:find(optionPattern)
+    local hasMetavars = false
     while prefix~=nil do
         local optName = prefix .. name
         opts[#opts + 1] = optName
@@ -217,9 +227,12 @@ function OptionsParser:_parseOptConfigNames(namesString, varName)
         if tmpName~=nil and tmpName:len()<name:len() then
             tmpName = name
         end
-        s, e, prefix, name = namesString:find(pattern, e+1)
+        local metavar
+        s, e, metavar = optSpec:find(skipPattern, e+1)
+        if metavar~=nil and metavar~="" then hasMetavars = true end
+        s, e, prefix, name, extra = optSpec:find(optionPattern, e+1)
     end
-    return opts, tmpName or varName
+    return opts, tmpName or varName, hasMetavars
 end
 
 --- #private
@@ -374,7 +387,8 @@ function OptionsParser:parseNextOption(context, tokens, index)
         return index, nil, nil
     end
     local optName = tokens[index]
-    if optName==nil or optName:sub(1, 1)~="-" then
+    local prefix = optName and optName:sub(1, 1)
+    if prefix~="-" and prefix~="/" then
         return index, nil, nil
     end
     index = index + 1
@@ -385,7 +399,7 @@ function OptionsParser:parseNextOption(context, tokens, index)
     end
 
     local firstArgument
-    local sep = optName:find("=")
+    local sep = optName:find("[=:]")
     if sep~=nil then
         firstArgument = optName:sub(sep+1)
         optName = optName:sub(1, sep-1)
