@@ -509,12 +509,12 @@ function OptionsParser:errorToString(error)
         local expected
         local opt = error.opt
         if opt.opts~=nil then
-            expected = string.concat(opt.opts, "\" / \"")
+            expected = table.concat(opt.opts, "\" / \"")
         else
             local opts = {}
             for _, name in ipairs(opt.opts_on) do opts[#opts + 1] = name end
             for _, name in ipairs(opt.opts_on) do opts[#opts + 1] = name end
-            expected = string.concat(opts, "\" / \"")
+            expected = table.concat(opts, "\" / \"")
         end
         return string.format("Missing option: \"%s\"", expected)
     elseif error.type == OPT_ERROR_INADEQUATE_ARGS then
