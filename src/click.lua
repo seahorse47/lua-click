@@ -72,8 +72,8 @@ local OPT_ERROR_INADEQUATE_ARGS = "INADEQUATE_ARGS"
 ---             "/v", "/v, /version", "/s, /shout ; /no-shout", "/count:<int>"
 --- @field name string @ [Optional] The variable name for the option value.
 --- @field is_flag boolean @ [Optional] Whether this option is a boolean flag.
----             If there is a "/" in the `opt`, this field will be ignored and the
----             option will always be treated as a boolean flag.
+---             If option names in `opt` field are separated by "/" (or ";" for DOS style options),
+---             this field will be ignored and the option will always be treated as a boolean flag.
 --- @field required boolean @ [Optional] Whether this option is required.
 --- @field multiple boolean @ [Optional] Whether this option can be provided multiple times.
 --- @field nargs integer @ [Optional] The number of option arguments. Default value is 1.
@@ -1070,7 +1070,7 @@ end
 -- export classes and functions
 local _M = {}
 
-_M["_VERSION"] = "click 0.1"
+_M["_VERSION"] = "click 0.2"
 
 _M["OptionsParser"] = OptionsParser
 _M["BaseCommand"] = BaseCommand
