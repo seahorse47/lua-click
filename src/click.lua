@@ -324,15 +324,13 @@ function OptionsParser:startParsing(tokens, index)
     end
 
     context.finishOnError = true
+    context.errors = {}
     context.error = nil -- first error
     context.lastError = nil -- last error
     function context:appendError(err)
         if err==nil then return end
-        if self.lastError~=nil then
-            self.lastError.next = err
-        else
-            self.error = err
-        end
+        self.errors[#self.errors + 1] = err
+        if self.error==nil then self.error = err end
         self.lastError = err
         if self.finishOnError then
             self.finished = true
