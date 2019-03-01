@@ -705,7 +705,7 @@ function BaseCommand:printHelpSection(title, lines, indents)
     for i, line in ipairs(lines) do
         local len = line[1]:len()
         if len>width then
-            width = 4*math.floor((len+3)/4) - 2
+            width = 4*math.floor((len+5)/4) - 2
         end
     end
     if width>30 then width = 30 end
