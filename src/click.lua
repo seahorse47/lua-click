@@ -1073,7 +1073,7 @@ end
 -- export classes and functions
 local _M = {}
 
-_M["_VERSION"] = "click 0.2.1"
+_M["_VERSION"] = "click 0.2.2"
 
 _M["OptionsParser"] = OptionsParser
 _M["BaseCommand"] = BaseCommand
