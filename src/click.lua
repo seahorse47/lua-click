@@ -132,7 +132,8 @@ function OptionsParser:initialize(config)
             minFollows = minFollows + arg.nargs_min
             self._argsConfig[i] = arg
             if metavars~=nil and arg.metavar~="" then
-                metavars[#metavars + 1] = arg.metavar
+                -- metavars[#metavars + 1] = arg.metavar
+                table.insert(metavars, 1, arg.metavar)
             end
         end
         self._argumentsMetavar = config.arguments_metavar or table.concat(metavars, " ")
