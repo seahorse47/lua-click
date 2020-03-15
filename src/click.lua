@@ -638,8 +638,8 @@ function BaseCommand:_setupHelpOption(optionsParser, cfg)
     if helpOption.disabled then
         return
     end
-    if helpOption==cfg.help_option then
-        local helpOption = {}
+    if helpOption==(cfg and cfg.help_option) then
+        helpOption = {}
         for k, v in pairs(cfg.help_option) do helpOption[k] = v end
     end
     helpOption.name = "$HELP"
