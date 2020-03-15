@@ -10,4 +10,4 @@ fi
 
 $LUA -v
 
-$LUA -e "package.path=package.path..[[;./src/?.lua]]" "$@"
+$LUA -e "package.path=[[./src/?.lua;]]..package.path" "$@"

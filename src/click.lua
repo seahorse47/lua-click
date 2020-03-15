@@ -4,6 +4,7 @@
     Datetime:    2018-11-30 20:25:51
     Description: Command line interface creation kit.
 --]]
+local _print = _G.print
 
 local function classMeta(cls)
     return {
@@ -656,7 +657,7 @@ function BaseCommand:_setupHelpOption(optionsParser, cfg)
 end
 
 function BaseCommand:printf(fmt, ...)
-    return print(string.format(fmt, ...))
+    return _print(string.format(fmt, ...))
 end
 
 function BaseCommand:description()
@@ -1063,6 +1064,9 @@ local function main(command, proc, args)
     return os.exit(exitCode)
 end
 
+local function setupPrintFunction(printFunc)
+    _print = printFunc or _G.print
+end
 
 --------------------------------------------------------------------------------
 -- export classes and functions
@@ -1079,5 +1083,6 @@ _M["ExecuteFileCommand"] = ExecuteFileCommand
 _M["__name__"] = __name__
 _M["exec"] = exec
 _M["main"] = main
+_M["setupPrintFunction"] = setupPrintFunction
 
 return _M
