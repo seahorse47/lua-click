@@ -657,6 +657,10 @@ function BaseCommand:_setupHelpOption(optionsParser, cfg)
     optionsParser:appendOption(helpOption)
 end
 
+function BaseCommand:print(content)
+    return _print(content)
+end
+
 function BaseCommand:printf(fmt, ...)
     return _print(string.format(fmt, ...))
 end
