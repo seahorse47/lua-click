@@ -924,6 +924,9 @@ function CommandGroup:addCommand(name, command)
     self._subCommands[name] = command
 end
 
+function CommandGroup:getCommand(name)
+    return self._subCommands[name]
+end
 
 --- @class click.FunctionCommand
 local FunctionCommand = class("FunctionCommand", BaseCommand)
