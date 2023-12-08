@@ -183,6 +183,7 @@ function OptionsParser:_parseOptConfig(optCfg)
         required = optCfg.required and true or false,
         help = optCfg.help or nil,
         callback = optCfg.callback,
+        is_win_style = isWindowsStyle,
     }
     if is_flag then
         finalConfig.nargs = 0
@@ -307,6 +308,7 @@ function OptionsParser:startParsing(tokens, index)
 
     context.optionValues = {}
     context.arguments = {}
+    context.hasWinStyleOptions = false
 
     -- fill default option values
     local optionValues = context.optionValues
@@ -322,6 +324,10 @@ function OptionsParser:startParsing(tokens, index)
             optionValues[opt.name] = valueArray
         else
             optionValues[opt.name] = opt.default
+        end
+
+        if opt.is_win_style then
+            context.hasWinStyleOptions = true
         end
     end
 
@@ -388,7 +394,7 @@ function OptionsParser:parseNextOption(context, tokens, index)
     end
     local optName = tokens[index]
     local prefix = optName and optName:sub(1, 1)
-    if prefix~="-" and prefix~="/" then
+    if prefix~="-" and (not context.hasWinStyleOptions or prefix~="/") then
         return index, nil, nil
     end
     index = index + 1
